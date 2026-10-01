@@ -252,3 +252,63 @@ test(
     `)
   },
 )
+
+test(
+  'exits unsuccessfully when dependency updates fail',
+  {
+    fs: {
+      'package.json': json`
+        {
+          "dependencies": {
+            "tailwindcss": "^3",
+            "@tailwindcss/upgrade": "workspace:^"
+          },
+          "devDependencies": {
+            "@tailwindcss/cli": "workspace:^"
+          }
+        }
+      `,
+      'tailwind.config.js': js` module.exports = { content: ['./src/**/*.{html,js}'] } `,
+      'src/index.html': html`<div class="!flex">Hello World</div>`,
+      'src/input.css': css`
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+      `,
+    },
+    retry: 0,
+  },
+  async ({ exec, fs, root, expect }) => {
+    if (process.platform === 'win32') return
+
+    let originalPnpm = (await exec('command -v pnpm')).trim()
+    let originalPath = process.env.PATH ?? ''
+    await fs.write(
+      'bin/pnpm',
+      `#!/bin/sh
+if [ "$1" = "add" ]; then
+  echo "simulated dependency update failure" >&2
+  exit 1
+fi
+exec "$ORIGINAL_PNPM" "$@"
+`,
+    )
+    await exec('chmod +x bin/pnpm')
+
+    let failure: any
+    try {
+      await exec('pnpm exec upgrade', {
+        env: {
+          ORIGINAL_PNPM: originalPnpm,
+          PATH: `${root}/bin:${originalPath}`,
+        },
+      })
+    } catch (error) {
+      failure = error
+    }
+
+    expect(failure?.code).toBe(1)
+    expect(await fs.read('src/input.css')).toContain("@import 'tailwindcss'")
+    expect(await fs.read('package.json')).toContain('"tailwindcss": "^3"')
+  },
+)

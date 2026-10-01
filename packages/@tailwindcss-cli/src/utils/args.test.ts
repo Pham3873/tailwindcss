@@ -55,7 +55,7 @@ it('should fallback to the default value if no flag is passed', () => {
       {
         '--input': { type: 'string', description: 'Input file', default: 'input.css' },
       },
-      ['--other'],
+      [],
     ),
   ).toMatchInlineSnapshot(`
     {
@@ -71,7 +71,7 @@ it('should fallback to null if no flag is passed and no default value is provide
       {
         '--input': { type: 'string', description: 'Input file' },
       },
-      ['--other'],
+      [],
     ),
   ).toMatchInlineSnapshot(`
     {
@@ -183,4 +183,10 @@ it('should be possible to provide boolean or number arguments', () => {
       "_": [],
     }
   `)
+})
+
+it('should reject unknown options', () => {
+  expect(() =>
+    args({ '--minify': { type: 'boolean', description: 'Minify the output' } }, ['--minfy']),
+  ).toThrowError('Unknown option: --minfy. Run `tailwindcss --help` for usage.')
 })

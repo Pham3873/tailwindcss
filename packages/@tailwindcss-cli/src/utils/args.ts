@@ -76,6 +76,17 @@ export function args<const T extends Arg>(options: T, argv = process.argv.slice(
 
   let parsed = parse(argv)
 
+  let knownOptions = new Set<string>()
+  for (let [flag, { alias }] of Object.entries(options)) {
+    knownOptions.add(flag.slice(2))
+    if (alias) knownOptions.add(alias.slice(1))
+  }
+
+  let unknownOption = Object.keys(parsed).find((key) => key !== '_' && !knownOptions.has(key))
+  if (unknownOption) {
+    throw new Error(`Unknown option: --${unknownOption}. Run \`tailwindcss --help\` for usage.`)
+  }
+
   for (let key in parsed) {
     let value = parsed[key]
 

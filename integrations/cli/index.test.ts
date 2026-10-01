@@ -2637,6 +2637,27 @@ test(
 )
 
 test(
+  'fails when an unknown option is provided',
+  {
+    fs: {
+      'package.json': json`
+        {
+          "dependencies": {
+            "tailwindcss": "workspace:^",
+            "@tailwindcss/cli": "workspace:^"
+          }
+        }
+      `,
+    },
+  },
+  async ({ exec, expect }) => {
+    await expect(exec('pnpm tailwindcss --minfy')).rejects.toThrow(
+      /Unknown option: --minfy\. Run `tailwindcss --help` for usage\./,
+    )
+  },
+)
+
+test(
   'fails when input file and output file are the same',
   {
     fs: {
