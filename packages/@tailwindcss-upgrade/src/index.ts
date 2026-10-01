@@ -21,7 +21,7 @@ import { Stylesheet } from './stylesheet'
 import { args, type Arg } from './utils/args'
 import { isRepoDirty } from './utils/git'
 import { pkg } from './utils/packages'
-import { eprintln, error, header, highlight, info, relative, success } from './utils/renderer'
+import { eprintln, error, header, highlight, info, relative, success, warn } from './utils/renderer'
 import * as version from './utils/version'
 import { writeFileSafely } from './utils/write-file-safely'
 
@@ -49,6 +49,7 @@ async function run() {
   eprintln()
 
   let cleanup: (() => void)[] = []
+  let dependenciesUpdated = true
 
   if (!flags['--force']) {
     // Require a clean git directory
@@ -284,7 +285,12 @@ async function run() {
         for (let dependency of dependencies) {
           success(`Updated package: ${highlight(dependency)}`, { prefix: '↳ ' })
         }
-      } catch {}
+      } catch {
+        dependenciesUpdated = false
+        warn(
+          'Dependency update failed. Please update the Tailwind packages manually to finish the migration.',
+        )
+      }
     }
 
     let tailwindRootStylesheets = stylesheets.filter((sheet) => sheet.isTailwindRoot && sheet.file)
@@ -449,10 +455,12 @@ async function run() {
   } else {
     success('No changes were made to your repository.')
   }
+
+  return dependenciesUpdated ? 0 : 1
 }
 
 run()
-  .then(() => process.exit(0))
+  .then((exitCode) => process.exit(exitCode))
   .catch((err) => {
     console.error(err)
     process.exit(1)

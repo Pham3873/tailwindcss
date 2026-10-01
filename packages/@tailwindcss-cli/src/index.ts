@@ -79,4 +79,7 @@ async function run() {
   await build.handle(flags)
 }
 
-await run()
+await run().catch((error) => {
+  console.error(error instanceof Error ? error.message : error)
+  process.exitCode = 1
+})
